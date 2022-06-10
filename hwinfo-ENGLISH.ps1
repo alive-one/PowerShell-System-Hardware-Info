@@ -43,7 +43,6 @@ Add-Content -Path $FilePath -Value '</div>'
 Add-Content -Path $FilePath -Value '<div class="div-table-cell-date">'
 Get-Date -Format "dd/MM/yy HH:mm" | Add-Content -Path $FilePath
 Add-Content -Path $FilePath -Value '</div></div>' 
-
   
 # | Write Motherboard Model and Manufacturer to Collection 
 $BaseBoardInfo = Get-CimInstance -Query "Select Manufacturer, Product from Win32_BaseBoard"
