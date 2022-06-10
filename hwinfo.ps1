@@ -1,4 +1,4 @@
-﻿# | For this script is part of more advanced system combined of several modules 
+# | For this script is part of more advanced system combined of several modules 
 # | it usually takes predefined PCName variable from another module
 # | But if PCName is not defined (it means that script run as standalone module) 
 # | write local system hostname as PCName variable
