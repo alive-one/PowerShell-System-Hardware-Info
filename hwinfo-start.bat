@@ -1,8 +1,5 @@
-rem | For default powershell scripts execution policy is -Restricted
-rem | First we need to allow execution of our *.ps1 script
+rem | Allow execution of hwinfo.ps1 
 powershell -ExecutionPolicy Bypass -File .\hwinfo.ps1
-  
-rem | When script is executed return default execution policy for security
+
+rem | After hwinfo.ps1 executed, return Default execution policy
 powershell Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Default
-  
-pause
