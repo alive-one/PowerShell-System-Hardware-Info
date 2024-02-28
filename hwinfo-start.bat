@@ -1,4 +1,4 @@
-rem | Allow execution of hwinfo.ps1 (You need Administrator Priviliges)
+rem | Allow execution of hwinfo.ps1 (Administrator priviliges reuired)
 powershell.exe -ExecutionPolicy Bypass -File .\hwinfo.ps1
 
 rem | Start hwinfo.ps1 from 
