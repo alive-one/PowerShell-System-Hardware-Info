@@ -103,9 +103,7 @@ $PCInfo['RAMType'] = $RAMType
 # | RAM Modules
 foreach ($RAMModule in $RAMQuery){
 $PCInfo[$RAMModule.DeviceLocator] = [ordered]@{
-#'Size' = [string]($RAMModule.Capacity / 1MB) + " Mb"; 
 'Size' = "$($RAMModule.Capacity / 1MB) Mb"; 
-#'Speed' = [string]$RAMModule.Speed + " Mhz";
 'Speed' = "$($RAMModule.Speed) Mhz";
 }
 } 
