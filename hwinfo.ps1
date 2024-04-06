@@ -279,7 +279,7 @@ $XMLKey = $Key -replace '[/()\[\]]', ""
 # | If Element is String then I deal with Inlayed Dictionary of first level
 IF ($PCInfo.$Key.GetType() -like "*String*") {
 
-# | Write key as XML OpenTag, write Value, write /key as XML CloseTag
+# | Write XMLKey as XML OpenTag, write Value, write /XMLKey as XML CloseTag
 Add-Content -Path $LocalPath -Value $("`<$($XMLKey)`>$($PCInfo.$Key)`<`/$($XMLKey)`>")
 }
 
@@ -298,12 +298,12 @@ foreach ($SubKey in $L2Dictionary.Keys) {
 # | Remove / and () from $SubKey, since they are not allowed in XML Tags
 $XMLSubKey = $SubKey -replace '[/()\[\]]', ""
 
-# | Write key name as XML Open tag, write key value, write key name as XML Close tag
+# | Write XMLSubKey name as XML Open tag, write key value, write /XMLSubKey name as XML Close tag
 Add-Content -Path $LocalPath -Value $("`<$($XMLSubKey)`>$($L2Dictionary.$SubKey)`</$($XMLSubKey)`>") -NoNewline
 }
 }
 
-# | Write inlayed Dictionary key as XML Close tag
+# | Write inlayed Dictionary XMLKey as XML Close tag
 Add-Content -Path $LocalPath -Value "`</$($XMLKey)`>"
 
 }
