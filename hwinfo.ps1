@@ -3,7 +3,7 @@
 $FilePath = "$PSScriptRoot" 
 
 # | Set Data Format Output. For example $JSON = 1 to export Data in *.json format. Multiple Choice is Possible
-$JSON = 1
+$JSON = 0
 
 # | CSV Export Settings
 $CSV = 0
@@ -14,14 +14,14 @@ $DictionaryCSVDelimiter = '","'
 
 # | Yet some programs, such as MS Excell, use regional settings when import CSV Data
 # | If you prefer to use your regional settings for CSV export, UNCOMMENT two lines below
-$StringCSVDelimiter = (Get-Culture).TextInfo.ListSeparator
-$DictionaryCSVDelimiter = "`"$($StringCSVDelimiter)`""
+#$StringCSVDelimiter = (Get-Culture).TextInfo.ListSeparator
+#$DictionaryCSVDelimiter = "`"$($StringCSVDelimiter)`""
 
 # | XML Export Settings
 $XML = 0
 
 # | HTML(GUI) Export Settings
-$HTML = 0
+$HTML = 1
 
 # | As hwinfo.ps1 is a part of more complex system, current script must already have $PCName defined from previuos module "Autoren"
 # | If not then this script is launched as standalone module and need to define $PCName as local System Name
@@ -272,20 +272,27 @@ IF (![System.IO.File]::Exists($LocalPath)) {
 Add-Content -Path $LocalPath -Value '<?xml version="1.0" encoding="UTF-8"?>'
 }
 
+# Write XML root Tag
+Add-Content -Path $LocalPath -Value "<PCINFO>"
+
 foreach ($Key in $PCInfo.Keys) {
+
+# | Remove / and () from $Key, since they are not allowed in XML Tags
+# | Also XML Tags must not contain spaces
+$XMLKey = $Key -replace '[/()\[\]]', ""
 
 # | If Element is String then I deal with Inlayed Dictionary of first level
 IF ($PCInfo.$Key.GetType() -like "*String*") {
 
 # | Write key as XML OpenTag, write Value, write /key as XML CloseTag
-Add-Content -Path $LocalPath -Value $("`<$($Key)`>$($PCInfo.$Key)`<`/$($Key)`>")
+Add-Content -Path $LocalPath -Value $("`<$($XMLKey)`>$($PCInfo.$Key)`<`/$($XMLKey)`>")
 }
 
 # | If Element is second level Inlayed Dictionary
 ELSEIF ($PCInfo.$Key -like "*Dictionary*") {
 
 # | Write Inlayed Dictionary key as XML Open tag
-Add-Content -Path $LocalPath -Value "`<$($Key)`>"
+Add-Content -Path $LocalPath -Value "`<$($XMLKey)`>"
 
 # | Cycle through every value of inlayed Dictionary
 foreach ($L2Dictionary in $PCInfo.$Key)
@@ -293,16 +300,21 @@ foreach ($L2Dictionary in $PCInfo.$Key)
 
 foreach ($SubKey in $L2Dictionary.Keys) {
 
+# | Remove / and () from $SubKey, since they are not allowed in XML Tags
+$XMLSubKey = $SubKey -replace '[/()\[\]]', ""
+
 # | Write key name as XML Open tag, write key value, write key name as XML Close tag
-Add-Content -Path $LocalPath -Value $("`<$($SubKey)`>$($L2Dictionary.$SubKey)`</$($SubKey)`>") -NoNewline
+Add-Content -Path $LocalPath -Value $("`<$($XMLSubKey)`>$($L2Dictionary.$SubKey)`</$($XMLSubKey)`>") -NoNewline
 }
 }
 
 # | Write inlayed Dictionary key as XML Close tag
-Add-Content -Path $LocalPath -Value "`</$($Key)`>"
+Add-Content -Path $LocalPath -Value "`</$($XMLKey)`>"
 
 }
 }
+# | Close XML root Tag
+Add-Content -Path $LocalPath -Value "</PCINFO>"
 }
 
 # | Export to HTML
