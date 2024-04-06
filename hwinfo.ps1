@@ -293,6 +293,7 @@ Add-Content -Path $LocalPath -Value "`<$($XMLKey)`>"
 foreach ($L2Dictionary in $PCInfo.$Key)
 {
 
+# | Use loop to iterate through "key:value" pairs in Dictionary
 foreach ($SubKey in $L2Dictionary.Keys) {
 
 # | Remove / and () from $SubKey, since they are not allowed in XML Tags
