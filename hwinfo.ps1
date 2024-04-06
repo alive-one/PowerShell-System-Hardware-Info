@@ -243,8 +243,6 @@ Add-Content -Path $LocalPath -Value "`"$Key`"$StringCSVDelimiter`"$($PCInfo.$Key
 } ELSEIF ($PCInfo.$Key.GetType() -like "*Dictionary*") {
 
 # | Add to file Dictionary key and values using join operator and "," as delimiter to form proper CSV structure
-#Add-Content -Path $LocalPath -Value `"$($Key, ($($PCInfo.$Key.Values) -join '","') -join '","')`"
-
 Add-Content -Path $LocalPath -Value `"$($Key, ($($PCInfo.$Key.Values) -join $DictionaryCSVDelimiter) -join $DictionaryCSVDelimiter)`"
 
 
