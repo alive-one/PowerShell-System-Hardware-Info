@@ -237,7 +237,6 @@ foreach ($Key in $PCInfo.keys) {
 IF ($PCInfo.$Key.GetType() -like "*String*") {
 
 # | Add Dictionary Key and Key Value to *.csv file using ` symbol to ecape double quotes
-#Add-Content -Path $LocalPath -Value "`"$Key`",`"$($PCInfo.$Key)`"" 
 Add-Content -Path $LocalPath -Value "`"$Key`"$StringCSVDelimiter`"$($PCInfo.$Key)`"" 
 
 # | if Dictionary Type is Dictionary it means that I have second level inlayed dictionary
