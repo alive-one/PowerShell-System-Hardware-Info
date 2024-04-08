@@ -8,4 +8,4 @@ So, if you started script from D:\ drive, your system name is I123456-Home and c
 
 Incase your Windows OS Powershell execution policy is "Restricted" (Which is highly possible because this policy enabled by Default) 
 you need to change execution policy either manually or start hwinfo.ps1 via hwinfo-start.bat (Run as Administrator)
-It will set *.ps1 files execution policy to "Bypass" and return it to "Default" later.
+It will set *.ps1 files execution policy to "RemoteSigned" and return it to "Default" later.
