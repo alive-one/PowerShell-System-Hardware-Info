@@ -135,10 +135,12 @@ foreach ($DeviceID in $InstalledGPUDeviceIDs) {
 $CurrentGPU = $GPUsRegQuery | where {$DeviceID -like "$($_.MatchingDeviceID)*"}
 
 # | Use ArrayIndex from InstalledGPUDeviceIDs Query to create unique Dictionary name to store GPUName and Memory Size. Then Add to PCInfo
-$PCInfo["GPU$($InstalledGPUDeviceIDs.IndexOf($DeviceID))"] = [ordered]@{'Name' = [string]$($CurrentGPU.'DriverDesc') 
+$PCInfo["GPU$($InstalledGPUDeviceIDs.IndexOf($DeviceID))"] = [ordered]@{
 
-# | Convert from HEX registry value to suitable decimal view with help of .NET Method .ToDecimal
-'Memory' = ([string](([System.Convert]::ToDecimal("$($CurrentGPU.'HardwareInformation.qwMemorySize')")) / 1MB) + " Mb") 
+'Name' = [string]$($CurrentGPU.'DriverDesc'); 
+
+# | Because regisrty query returns Array, with empty zero element, filter it out first
+'Memory' = "$(($CurrentGPU.'HardwareInformation.qwMemorySize' | where {$_.Length -ne 0}) / 1Mb) Mb";
 }
 }
 
