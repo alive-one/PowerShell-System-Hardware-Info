@@ -3,7 +3,7 @@
 $FilePath = "$PSScriptRoot" 
 
 # | Set Data Format Output. For example $JSON = 1 to export Data in *.json format. Multiple Choice is Possible
-$JSON = 0
+$JSON = 1
 
 # | CSV Export Settings
 $CSV = 0
@@ -47,7 +47,7 @@ $PCInfo = [ordered]@{
 $BaseBoardQuery = Get-CimInstance -Query "Select Manufacturer, Product from win32_Baseboard"
 
 # | Socket, Name, etc. CPU staff
-$CPUQuery = Get-CimInstance -Query "Select DeviceID, SocketDesignation, Name, NumberOfCores, NumberOfLogicalProcessors from Win32_Processor"
+$CPUQuery = Get-CimInstance -Query "Select DeviceID, SocketDesignation, Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed from Win32_Processor"
 
 # | Slot Name, Size, Speed, MemoryType
 $RAMQuery = Get-CimInstance -Query "Select  DeviceLocator, Capacity, Speed, MemoryType, SMBIOSMemoryType from Win32_PhysicalMemory"
@@ -56,7 +56,15 @@ $RAMQuery = Get-CimInstance -Query "Select  DeviceLocator, Capacity, Speed, Memo
 [string]$RAMType = $($RAMTypes.[int]$RAMQuery.MemoryType[0], $RAMTypes.[int]$RAMQuery.SMBIOSMemoryType[0]).where({$_ -notlike 'Undefined'},'First')
 
 # | All RAM Slots Available (No Matter Populaterd or Not)
-[string]$RAMSlotsCount = $(Get-CimInstance -Query "Select MemoryDevices from Win32_PhysicalMemoryArray").MemoryDevices
+$RAMSlotsCount = $(Get-CimInstance -Query "Select MemoryDevices from Win32_PhysicalMemoryArray").MemoryDevices
+
+# | All RAM Available
+[int]$TotalRAMCapacity = 0
+
+# Calculate All RAM Installed in Gb
+foreach ($RAMModuleSize in $RAMQuery.Capacity) {
+$TotalRAMCapacity = $TotalRAMCapacity + $RAMModuleSize / 1Gb
+}
 
 # | Physical Storage Devices excluding USB, SD-Cards, other Removables
 $StorageQuery = Get-PhysicalDisk | where {$_.BusType -notlike "USB" -xor "SD" -xor "MMC" -xor "Unknown" -xor "Virtual"} | Select DeviceID, BusType, MediaType, FriendlyName, Size, HealthStatus | Sort-Object -Property DeviceID
@@ -83,6 +91,7 @@ $PCInfo["BaseBoard"] = [ordered]@{
 'Manufacturer' = $BaseBoardQuery.Manufacturer; 
 'Model' = $BaseBoardQuery.Product; 
 'RAMSLots' = "$($RAMSlotsCount) RAM Slots";
+#'RAMSLots' = $RAMSlotsCount;
 }
 
 # | CPUs (There can be a few, you know)
@@ -91,22 +100,28 @@ foreach ($CPU in $CPUQuery) {
 # | Use each CPU.DeviceID as name for Ordered Dictionary which contains CPU Name and Cores/Threads Count. And add this dictionary to PCInfo
 $PCInfo[$CPU.DeviceID] = [ordered]@{
 'Socket' = $CPU.SocketDesignation;
+#'Socket' = [int]$CPU.SocketDesignation -replace "[^0-9]"; - это для записи в SQL но хз пока, может на этапе записи "чистить" от букв и конвертировать в int потому что иначе надо менять вывод 
 'Name' = $CPU.Name; 
 'Cores/Threads' = "$($CPU.NumberOfCores) Cores / $($CPU.NumberOfLogicalProcessors) Threads";
-
+#'Cores' = $CPU.NumberOfCores;
+#'Threads' = $CPU.NumberOfLogicalProcessors;
+#'Speed' = $CPU.MaxClockSpeed; в SQL надо писать уже int так же как с сокетом.
 }
 }
 
-# | RAM Type
-$PCInfo['RAMType'] = $RAMType
+# | Common RAM Info 
+$PCInfo['RAM'] = [ordered]@{
+'RAMType' = $RAMType;
+'TotalRAM' = "$($TotalRAMCapacity) Gb";
+'Speed' = "$($RAMQuery[0].Speed) Mhz"
+}
 
-# | RAM Modules
+
+<# | RAM Modules
 foreach ($RAMModule in $RAMQuery){
-$PCInfo[$RAMModule.DeviceLocator] = [ordered]@{
-'Size' = "$($RAMModule.Capacity / 1MB) Mb"; 
-'Speed' = "$($RAMModule.Speed) Mhz";
-}
+$PCInfo[$RAMModule.DeviceLocator] = "$($RAMModule.Capacity / 1MB) Mb" 
 } 
+#>
 
 # | Storage
 foreach ($Device in $StorageQuery) {
@@ -117,14 +132,14 @@ $PCInfo["Disk$($Device.DeviceID)"] = [ordered]@{
 # | Define Bus and Storage Type
 '(Bus)Type' = "($($Device.BusType))$($Device.MediaType)";
 
-# | Literally Disk Friandly Name
+# | Literally Disk Friendly Name
 'Name' = $Device.FriendlyName; 
 
 # | Use division by 1000000000 instead of Powershell 'Gb' to set 'proper' Disk Size
 'Size' = [string]([Math]::Round($Device.Size/1000000000)) + " Gb";
 
 # | Windows Disk Status
-'HealthStatus' = $Device.HealthStatus;
+#'HealthStatus' = $Device.HealthStatus;
 }
 }
 
@@ -137,7 +152,7 @@ $CurrentGPU = $GPUsRegQuery | where {$DeviceID -like "$($_.MatchingDeviceID)*"}
 # | Use ArrayIndex from InstalledGPUDeviceIDs Query to create unique Dictionary name to store GPUName and Memory Size. Then Add to PCInfo
 $PCInfo["GPU$($InstalledGPUDeviceIDs.IndexOf($DeviceID))"] = [ordered]@{
 
-'Name' = [string]$($CurrentGPU.'DriverDesc'); 
+'Name' = [string]$($CurrentGPU.'DriverDesc');
 
 # | Because regisrty query returns Array, with empty zero element, filter it out first
 'Memory' = "$(($CurrentGPU.'HardwareInformation.qwMemorySize' | where {$_.Length -ne 0}) / 1Mb) Mb";
@@ -189,7 +204,7 @@ $PCInfo["NetConnection$($NetConnectionsQuery.IndexOf($Connection))$($ConnectionS
 }
 
 # | Export to JSON
-IF ($JSON -eq 1) {
+IF ($JSON -ne 0) {
 
 # | Set File Extension
 $FileExtension = "json"
@@ -217,7 +232,7 @@ Add-Content -Path $LocalPath -Value $JSONFormat
 # | Also by default Windows 10 PSVersion is 5, and Export-CSV -UseQuotes only available in PSVersion 7
 # | since I need legacy OS support and CSV with quotes obligatory usage of Export-CSV, etc. somewhat pointless.
 
-IF ($CSV -eq 1) {
+IF ($CSV -ne 0) {
 
 # | Set File Extension
 $FileExtension = "csv"
@@ -254,7 +269,7 @@ Add-Content -Path $LocalPath -Value `"$($Key, ($($PCInfo.$Key.Values) -join $Dic
 
 # | Export to XML
 # | I am aware about Export-Clixml and bunch of others XML and Clixml-Export cmdlets, yet I want readable structure with human understandable tags.
-IF ($XML -eq 1) {
+IF ($XML -ne 0) {
 
 # | Set File Extension
 $FileExtension = "xml"
@@ -323,7 +338,7 @@ Add-Content -Path $LocalPath -Value "</PCINFO>"
 # | since it requires more resourses than simply write hash-table content to file.
 # | Besides, I use HTML representation as GUI and it must have kind of NON-disgusting look, lol.
 
-IF ($HTML -eq 1) {
+IF ($HTML -ne 0) {
 
 # | Set File Extension
 $FileExtension = "html"
