@@ -6,7 +6,7 @@ $FilePath = "$PSScriptRoot"
 $JSON = 1
 
 # | CSV Export Settings
-$CSV = 0
+$CSV = 1
 
 # | Set standard CSV delimiter which is comma (,) by default
 $StringCSVDelimiter = ','
@@ -18,7 +18,7 @@ $DictionaryCSVDelimiter = '","'
 #$DictionaryCSVDelimiter = "`"$($StringCSVDelimiter)`""
 
 # | XML Export Settings
-$XML = 0
+$XML = 1
 
 # | HTML(GUI) Export Settings
 $HTML = 1
@@ -91,7 +91,6 @@ $PCInfo["BaseBoard"] = [ordered]@{
 'Manufacturer' = $BaseBoardQuery.Manufacturer; 
 'Model' = $BaseBoardQuery.Product; 
 'RAMSLots' = "$($RAMSlotsCount) RAM Slots";
-#'RAMSLots' = $RAMSlotsCount;
 }
 
 # | CPUs (There can be a few, you know)
@@ -100,12 +99,8 @@ foreach ($CPU in $CPUQuery) {
 # | Use each CPU.DeviceID as name for Ordered Dictionary which contains CPU Name and Cores/Threads Count. And add this dictionary to PCInfo
 $PCInfo[$CPU.DeviceID] = [ordered]@{
 'Socket' = $CPU.SocketDesignation;
-#'Socket' = [int]$CPU.SocketDesignation -replace "[^0-9]"; - это для записи в SQL но хз пока, может на этапе записи "чистить" от букв и конвертировать в int потому что иначе надо менять вывод 
 'Name' = $CPU.Name; 
 'Cores/Threads' = "$($CPU.NumberOfCores) Cores / $($CPU.NumberOfLogicalProcessors) Threads";
-#'Cores' = $CPU.NumberOfCores;
-#'Threads' = $CPU.NumberOfLogicalProcessors;
-#'Speed' = $CPU.MaxClockSpeed; в SQL надо писать уже int так же как с сокетом.
 }
 }
 
@@ -115,13 +110,6 @@ $PCInfo['RAM'] = [ordered]@{
 'TotalRAM' = "$($TotalRAMCapacity) Gb";
 'Speed' = "$($RAMQuery[0].Speed) Mhz"
 }
-
-
-<# | RAM Modules
-foreach ($RAMModule in $RAMQuery){
-$PCInfo[$RAMModule.DeviceLocator] = "$($RAMModule.Capacity / 1MB) Mb" 
-} 
-#>
 
 # | Storage
 foreach ($Device in $StorageQuery) {
@@ -138,8 +126,6 @@ $PCInfo["Disk$($Device.DeviceID)"] = [ordered]@{
 # | Use division by 1000000000 instead of Powershell 'Gb' to set 'proper' Disk Size
 'Size' = [string]([Math]::Round($Device.Size/1000000000)) + " Gb";
 
-# | Windows Disk Status
-#'HealthStatus' = $Device.HealthStatus;
 }
 }
 
@@ -224,6 +210,7 @@ $JSONFormat = $PCInfo | ConvertTo-JSON
 
 # | Add to file
 Add-Content -Path $LocalPath -Value $JSONFormat
+
 }
 
 
@@ -262,7 +249,6 @@ Add-Content -Path $LocalPath -Value "`"$Key`"$StringCSVDelimiter`"$($PCInfo.$Key
 # | Add to file Dictionary key and values using join operator and "," as delimiter to form proper CSV structure
 Add-Content -Path $LocalPath -Value `"$($Key, ($($PCInfo.$Key.Values) -join $DictionaryCSVDelimiter) -join $DictionaryCSVDelimiter)`"
 
-
 }
 }
 }
@@ -282,10 +268,16 @@ IF (![System.IO.File]::Exists($LocalPath)) {
 
 # | Write XML Notation
 Add-Content -Path $LocalPath -Value '<?xml version="1.0" encoding="UTF-8"?>'
+
+# Write XML Root Open Tag
+Add-Content -Path $LocalPath -Value "<pcinfo>"
 }
 
-# Write XML root Tag
-Add-Content -Path $LocalPath -Value "<PCINFO>"
+# | Get existing XML file content and rewrite without XML Close Root Tag
+(Get-Content($LocalPath)).Replace("</pcinfo>", "") | Out-File -FilePath $LocalPath
+
+# | Identify new info Begining
+Add-Content -Path $LocalPath -Value "<!-- New Entry -->"
 
 foreach ($Key in $PCInfo.Keys) {
 
@@ -327,7 +319,7 @@ Add-Content -Path $LocalPath -Value "`</$($XMLKey)`>"
 }
 }
 # | Close XML root Tag
-Add-Content -Path $LocalPath -Value "</PCINFO>"
+Add-Content -Path $LocalPath -Value "</pcinfo>"
 }
 
 # | Export to HTML
