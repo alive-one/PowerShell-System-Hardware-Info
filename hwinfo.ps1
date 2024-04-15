@@ -50,7 +50,7 @@ $BaseBoardQuery = Get-CimInstance -Query "Select Manufacturer, Product from win3
 $CPUQuery = Get-CimInstance -Query "Select DeviceID, SocketDesignation, Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed from Win32_Processor"
 
 # | Slot Name, Size, Speed, MemoryType
-$RAMQuery = Get-CimInstance -Query "Select  DeviceLocator, Capacity, Speed, MemoryType, SMBIOSMemoryType from Win32_PhysicalMemory"
+$RAMQuery = Get-CimInstance -Query "Select  DeviceLocator, BankLabel, Capacity, Speed, MemoryType, SMBIOSMemoryType from Win32_PhysicalMemory"
 
 # | RAM Type stored in MemoryType, SMBIOSMemoryTYpe or Both. So Use .where() method to Filter Out only first suitable value
 [string]$RAMType = $($RAMTypes.[int]$RAMQuery.MemoryType[0], $RAMTypes.[int]$RAMQuery.SMBIOSMemoryType[0]).where({$_ -notlike 'Undefined'},'First')
@@ -111,6 +111,14 @@ $PCInfo['RAM'] = [ordered]@{
 'Speed' = "$($RAMQuery[0].Speed) Mhz"
 }
 
+# | RAM Modules Info
+foreach ($RAMModule in $RAMQuery){
+$PCInfo[$RAMModule.BankLabel] = [ordered]@{
+'ModuleSlot' = "$($RAMModule.DeviceLocator)";
+'ModuleSize' = "$($RAMModule.Capacity / 1MB) Mb";
+}
+
+} 
 # | Storage
 foreach ($Device in $StorageQuery) {
 
