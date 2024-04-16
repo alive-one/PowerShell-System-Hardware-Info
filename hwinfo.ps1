@@ -50,7 +50,7 @@ $BaseBoardQuery = Get-CimInstance -Query "Select Manufacturer, Product from win3
 $CPUQuery = Get-CimInstance -Query "Select DeviceID, SocketDesignation, Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed from Win32_Processor"
 
 # | Slot Name, Size, Speed, MemoryType
-$RAMQuery = Get-CimInstance -Query "Select  DeviceLocator, BankLabel, Capacity, Speed, MemoryType, SMBIOSMemoryType from Win32_PhysicalMemory"
+$RAMQuery = Get-CimInstance -Query "Select DeviceLocator, BankLabel, Capacity, Speed, MemoryType, SMBIOSMemoryType from Win32_PhysicalMemory"
 
 # | RAM Type stored in MemoryType, SMBIOSMemoryTYpe or Both. So Use .where() method to Filter Out only first suitable value
 [string]$RAMType = $($RAMTypes.[int]$RAMQuery.MemoryType[0], $RAMTypes.[int]$RAMQuery.SMBIOSMemoryType[0]).where({$_ -notlike 'Undefined'},'First')
@@ -74,7 +74,7 @@ $GPUsRegQuery = Get-ItemProperty -path "HKLM:\SYSTEM\CurrentControlSet\Control\C
 
 # | DeviceIDs of all currently installed GPUs
 # | Store GPU IDs Strings to Array to use Array Indexes for GPU devices enumeration later
-$InstalledGPUDeviceIDs = @((Get-CIMInstance -Query "SELECT PNPDeviceID from Win32_VideoController WHERE PNPDeviceID LIKE 'PCI%'").PNPDeviceID)
+$InstalledGPUs = @(Get-CIMInstance -Query "SELECT PNPDeviceID, AdapterCompatibility from Win32_VideoController WHERE PNPDeviceID LIKE 'PCI%'")
 
 # | Query All Network Adapters
 $AllNetAdaptersQuery = Get-CIMInstance -Query "SELECT Name, MACAddress, AdapterType, NetConnectionID, NetConnectionStatus, PhysicalAdapter from Win32_NetworkAdapter"
@@ -111,14 +111,18 @@ $PCInfo['RAM'] = [ordered]@{
 'Speed' = "$($RAMQuery[0].Speed) Mhz"
 }
 
-# | RAM Modules Info
+
+# | Individual RAM Modules Info
 foreach ($RAMModule in $RAMQuery){
-$PCInfo[$RAMModule.BankLabel] = [ordered]@{
+
+# | Remove spaces in Memory BANK names since names with spaces are not allowed as XML Tags
+$PCInfo[($RAMModule.BankLabel).replace(" ", "")] = [ordered]@{
 'ModuleSlot' = "$($RAMModule.DeviceLocator)";
 'ModuleSize' = "$($RAMModule.Capacity / 1MB) Mb";
 }
-
 } 
+
+
 # | Storage
 foreach ($Device in $StorageQuery) {
 
@@ -133,25 +137,29 @@ $PCInfo["Disk$($Device.DeviceID)"] = [ordered]@{
 
 # | Use division by 1000000000 instead of Powershell 'Gb' to set 'proper' Disk Size
 'Size' = [string]([Math]::Round($Device.Size/1000000000)) + " Gb";
-
 }
 }
 
 # GPUs
-foreach ($DeviceID in $InstalledGPUDeviceIDs) {
+foreach ($GPUDevice in $InstalledGPUs) {
 
 # | Compare currently installed GPU Device IDs with corresponding values from Registry to get necessary registry branch with actual info on GPU Memory size
-$CurrentGPU = $GPUsRegQuery | where {$DeviceID -like "$($_.MatchingDeviceID)*"}
+$CurrentGPU = $GPUsRegQuery | where {$GPUDevice.PNPDeviceID -like "$($_.MatchingDeviceID)*"}
 
-# | Use ArrayIndex from InstalledGPUDeviceIDs Query to create unique Dictionary name to store GPUName and Memory Size. Then Add to PCInfo
-$PCInfo["GPU$($InstalledGPUDeviceIDs.IndexOf($DeviceID))"] = [ordered]@{
+# | Remove Manufacturer Name from GPU Name since we already stored it in appropriate field
+[string]$CurrentGPUName = ($CurrentGPU.'DriverDesc' | where {$_.Length -ne 0}).replace("$($GPUDevice.AdapterCompatibility)", "")
 
-'Name' = [string]$($CurrentGPU.'DriverDesc');
+# | Use ArrayIndex from InstalledGPUDeviceIDs Query to create unique Dictionary name to store GPUName and Memory Size.
+$PCInfo["GPU$($InstalledGPUs.IndexOf($GPUDevice))"] = [ordered]@{
 
-# | Because regisrty query returns Array, with empty zero element, filter it out first
+'Manufacturer' = [string]$($GPUDevice.AdapterCompatibility);
+'Name' = $CurrentGPUName;
+
+# | Because regisrty query returns Array with empty zero element filter it out
 'Memory' = "$(($CurrentGPU.'HardwareInformation.qwMemorySize' | where {$_.Length -ne 0}) / 1Mb) Mb";
 }
 }
+
 
 # | Physical Adapters
 foreach ($PhysicalAdapter in $PhysicalAdaptersQuery){
@@ -160,9 +168,7 @@ foreach ($PhysicalAdapter in $PhysicalAdaptersQuery){
 $PCInfo["PhysicalAdapter$($PhysicalAdaptersQuery.IndexOf($PhysicalAdapter))"] = [ordered]@{
 
 'Name' = [string]$PhysicalAdapter.Name; 
-
 'MACAddress' = [string]$PhysicalAdapter.MACAddress; 
-
 'AdapterType' = [string]$PhysicalAdapter.AdapterType;
 }
 }
@@ -218,7 +224,6 @@ $JSONFormat = $PCInfo | ConvertTo-JSON
 
 # | Add to file
 Add-Content -Path $LocalPath -Value $JSONFormat
-
 }
 
 
@@ -326,8 +331,10 @@ Add-Content -Path $LocalPath -Value "`</$($XMLKey)`>"
 
 }
 }
+
 # | Close XML root Tag
 Add-Content -Path $LocalPath -Value "</pcinfo>"
+
 }
 
 # | Export to HTML
