@@ -107,6 +107,7 @@ $CleanCPUName = [string]$CPU.Name -replace ".*?($CleanCPUManufacturer).*? ", ""
 
 # | Just incase LongSoon, some ARM or even Elbrus, you know...
 } ELSE {
+
 # | Leave CPU Manufcaturer as is
 [string]$CleanCPUManufacturer = $CPU.Manufacturer
 
