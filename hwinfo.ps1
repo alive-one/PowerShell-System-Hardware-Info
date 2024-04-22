@@ -47,7 +47,7 @@ $PCInfo = [ordered]@{
 $BaseBoardQuery = Get-CimInstance -Query "Select Manufacturer, Product from win32_Baseboard"
 
 # | Socket, Name, etc. CPU staff
-$CPUQuery = Get-CimInstance -Query "Select DeviceID, SocketDesignation, Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed from Win32_Processor"
+$CPUQuery = Get-CimInstance -Query "Select DeviceID, Manufacturer, SocketDesignation, Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed from Win32_Processor"
 
 # | Slot Name, Size, Speed, MemoryType
 $RAMQuery = Get-CimInstance -Query "Select DeviceLocator, BankLabel, Capacity, Speed, MemoryType, SMBIOSMemoryType from Win32_PhysicalMemory"
@@ -96,10 +96,29 @@ $PCInfo["BaseBoard"] = [ordered]@{
 # | CPUs (There can be a few, you know)
 foreach ($CPU in $CPUQuery) {
 
+# | IF CPU Manufacturer is Intel or AMD
+IF ([string]$CPU.Manufacturer -match "Intel|AMD") {
+
+# | Leave only Intel or AMD as Manufacturer String using predefined array Matches[] which contains results of last comparison
+$CleanCPUManufacturer = [string]$Matches[0]
+
+# | Remove Manufacturer from CPU Name with regexp to get rid of data doubling;
+$CleanCPUName = [string]$CPU.Name -replace ".*?($CleanCPUManufacturer).*? ", ""
+
+# | Just incase LongSoon, some ARM or even Elbrus, you know...
+} ELSE {
+# | Leave CPU Manufcaturer as is
+[string]$CleanCPUManufacturer = $CPU.Manufacturer
+
+# | Leave CPU Name as is
+[string]$CleanCPUName = $CPU.Name
+}
+
 # | Use each CPU.DeviceID as name for Ordered Dictionary which contains CPU Name and Cores/Threads Count. And add this dictionary to PCInfo
 $PCInfo[$CPU.DeviceID] = [ordered]@{
 'Socket' = $CPU.SocketDesignation;
-'Name' = $CPU.Name; 
+'Manufacturer' = $CleanCPUManufacturer;
+'Name' = $CleanCPUName;
 'Cores/Threads' = "$($CPU.NumberOfCores) Cores / $($CPU.NumberOfLogicalProcessors) Threads";
 }
 }
@@ -116,7 +135,7 @@ $PCInfo['RAM'] = [ordered]@{
 foreach ($RAMModule in $RAMQuery){
 
 # | Remove spaces in Memory BANK names since names with spaces are not allowed as XML Tags
-$PCInfo[($RAMModule.BankLabel).replace(" ", "")] = [ordered]@{
+$PCInfo[("RAM$($RAMModule.BankLabel)").replace(" ", "")] = [ordered]@{
 'ModuleSlot' = "$($RAMModule.DeviceLocator)";
 'ModuleSize' = "$($RAMModule.Capacity / 1MB) Mb";
 }
