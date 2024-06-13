@@ -12,7 +12,7 @@ $CSV = 1
 $StringCSVDelimiter = ','
 $DictionaryCSVDelimiter = '","'
 
-# | Yet some programs, such as MS Excell, use regional settings when import CSV Data
+# | Yet some programs, such as MS Excel, use regional settings when import CSV Data
 # | If you prefer to use your regional settings for CSV export, UNCOMMENT two lines below
 #$StringCSVDelimiter = (Get-Culture).TextInfo.ListSeparator
 #$DictionaryCSVDelimiter = "`"$($StringCSVDelimiter)`""
@@ -36,7 +36,7 @@ $RAMTypes = @{0 = 'Unknown'; 1 = 'Other'; 20 = 'DDR'; 21 = 'DDR2'; 22 = 'DDR2 FB
 $PCInfo = [ordered]@{
 
 # | Local System Date (Be wary for it may differ from Accurate Date sometimes)
-'LocalDate' = [string]$(Get-Date -Format "dd/MM/yy HH:mm"); 
+'LocalDate' = [string]$(Get-Date -Format "dd/MM/yyyy HH:mm"); 
 
 # | Literally. 'Nuff said 
 'SystemName' = $PCName;
@@ -67,7 +67,8 @@ $TotalRAMCapacity = $TotalRAMCapacity + $RAMModuleSize / 1Gb
 }
 
 # | Physical Storage Devices excluding USB, SD-Cards, other Removables
-$StorageQuery = Get-PhysicalDisk | where {$_.BusType -notlike "USB" -xor "SD" -xor "MMC" -xor "Unknown" -xor "Virtual"} | Select DeviceID, BusType, MediaType, FriendlyName, Size, HealthStatus | Sort-Object -Property DeviceID
+# | Use Get-PhysicalDisk because only this cmdlet return proper values for BusType and MediaType, i.e. (SATA) and SSD accordingly
+$StorageQuery = Get-PhysicalDisk | where {$_.BusType -notlike "USB" -xor "SD" -xor "MMC" -xor "Unknown" -xor "Virtual"} | Select DeviceID, BusType, MediaType, FriendlyName, Size, SerialNumber | Sort-Object -Property DeviceID
 
 # | GPU Name, DeviceID and Proper GPUMemory amount from Registry
 $GPUsRegQuery = Get-ItemProperty -path "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4D36E968-E325-11CE-BFC1-08002BE10318}\????" | Select -Property MatchingDeviceID, DriverDesc, HardwareInformation.qwMemorySize 
@@ -76,20 +77,20 @@ $GPUsRegQuery = Get-ItemProperty -path "HKLM:\SYSTEM\CurrentControlSet\Control\C
 # | Store GPU IDs Strings to Array to use Array Indexes for GPU devices enumeration later
 $InstalledGPUs = @(Get-CIMInstance -Query "SELECT PNPDeviceID, AdapterCompatibility from Win32_VideoController WHERE PNPDeviceID LIKE 'PCI%'")
 
-# | Query All Network Adapters
-$AllNetAdaptersQuery = Get-CIMInstance -Query "SELECT Name, MACAddress, AdapterType, NetConnectionID, NetConnectionStatus, PhysicalAdapter from Win32_NetworkAdapter"
+# | Query Physical Adapters Only and store in Array to use Array Indexes for NetAdapters enumeration
+$PhysicalAdaptersQuery = @(Get-CimInstance -ClassName MSFT_NetAdapter -Namespace ROOT\StandardCimv2 | Where-Object {!$_.Virtual})
 
-# | Query Physical Adapters Only
-$PhysicalAdaptersQuery = @($AllNetAdaptersQuery | where {$_.PhysicalAdapter -eq 1})
-
-# | Query Network Connections with IPEnbled (Both Physical And Virtual)
-$NetConnectionsQuery = @(Get-CimInstance Win32_NetworkAdapterConfiguration | where {$_.IPEnabled -eq 1} | Select IPAddress, IPSubnet, DefaultIPGateway, MACAddress)
+# | Query Network Connections with IPEnbled 
+$NetConnectionsQuery = @(Get-CimInstance -Query "Select Description, IPAddress, IPSubnet, DefaultIPGateway, MACAddress from Win32_NetworkAdapterConfiguration WHERE IPEnabled = 1")
 
 # | Add Info to PCInfo Dictionary
 # | Baseboard 
 $PCInfo["BaseBoard"] = [ordered]@{
+
 'Manufacturer' = $BaseBoardQuery.Manufacturer; 
+
 'Model' = $BaseBoardQuery.Product; 
+
 'RAMSLots' = "$($RAMSlotsCount) RAM Slots";
 }
 
@@ -107,7 +108,6 @@ $CleanCPUName = [string]$CPU.Name -replace ".*?($CleanCPUManufacturer).*? ", ""
 
 # | Just incase LongSoon, some ARM or even Elbrus, you know...
 } ELSE {
-
 # | Leave CPU Manufcaturer as is
 [string]$CleanCPUManufacturer = $CPU.Manufacturer
 
@@ -117,17 +117,24 @@ $CleanCPUName = [string]$CPU.Name -replace ".*?($CleanCPUManufacturer).*? ", ""
 
 # | Use each CPU.DeviceID as name for Ordered Dictionary which contains CPU Name and Cores/Threads Count. And add this dictionary to PCInfo
 $PCInfo[$CPU.DeviceID] = [ordered]@{
+
 'Socket' = $CPU.SocketDesignation;
+
 'Manufacturer' = $CleanCPUManufacturer;
+
 'Name' = $CleanCPUName;
+
 'Cores/Threads' = "$($CPU.NumberOfCores) Cores / $($CPU.NumberOfLogicalProcessors) Threads";
 }
 }
 
 # | Common RAM Info 
 $PCInfo['RAM'] = [ordered]@{
+
 'RAMType' = $RAMType;
+
 'TotalRAM' = "$($TotalRAMCapacity) Gb";
+
 'Speed' = "$($RAMQuery[0].Speed) Mhz"
 }
 
@@ -137,7 +144,9 @@ foreach ($RAMModule in $RAMQuery){
 
 # | Remove spaces in Memory BANK names since names with spaces are not allowed as XML Tags
 $PCInfo[("RAM$($RAMModule.BankLabel)").replace(" ", "")] = [ordered]@{
+
 'ModuleSlot' = "$($RAMModule.DeviceLocator)";
+
 'ModuleSize' = "$($RAMModule.Capacity / 1MB) Mb";
 }
 } 
@@ -146,19 +155,27 @@ $PCInfo[("RAM$($RAMModule.BankLabel)").replace(" ", "")] = [ordered]@{
 # | Storage
 foreach ($Device in $StorageQuery) {
 
-# | Use Each Storage Device Unique Identifier as enumerator to name Ordered Dictionary which contains all current Storage Device info
+# | From Win32_DiskDrive query PNPDeviceID, filtering by serial number of device currently in cycle
+$DevicePNP = (Get-CimInstance -Query "Select PNPDeviceID, SerialNumber from Win32_DiskDrive" | where {$(($_.SerialNumber).Trim()) -like "*$($Device.SerialNumber)*"}).PNPDeviceID
+
+# | Use Each Storage Device Unique Identifier as enumerator to name Ordered Dictionary which will contain all current Storage Device info
 $PCInfo["Disk$($Device.DeviceID)"] = [ordered]@{
 
 # | Define Bus and Storage Type
 '(Bus)Type' = "($($Device.BusType))$($Device.MediaType)";
 
-# | Literally Disk Friendly Name
-'Name' = $Device.FriendlyName; 
+# | Use regex to filter out only manufacturer name from PNPDeviceID string
+'Manufacturer' = [regex]::Match($DevicePNP, "VEN_(.+?)&").Groups[1].Value;
+
+# | Use regex to remove redundant info such as Manufacturer name from Model name
+'Model' = [regex]::Replace($Device.FriendlyName, $DeviceManufacturer, "", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase);
 
 # | Use division by 1000000000 instead of Powershell 'Gb' to set 'proper' Disk Size
 'Size' = [string]([Math]::Round($Device.Size/1000000000)) + " Gb";
+
 }
 }
+
 
 # GPUs
 foreach ($GPUDevice in $InstalledGPUs) {
@@ -166,16 +183,16 @@ foreach ($GPUDevice in $InstalledGPUs) {
 # | Compare currently installed GPU Device IDs with corresponding values from Registry to get necessary registry branch with actual info on GPU Memory size
 $CurrentGPU = $GPUsRegQuery | where {$GPUDevice.PNPDeviceID -like "$($_.MatchingDeviceID)*"}
 
-# | Remove Manufacturer Name from GPU Name since we already stored it in appropriate field
-[string]$CurrentGPUName = ($CurrentGPU.'DriverDesc' | where {$_.Length -ne 0}).replace("$($GPUDevice.AdapterCompatibility)", "")
-
 # | Use ArrayIndex from InstalledGPUDeviceIDs Query to create unique Dictionary name to store GPUName and Memory Size.
 $PCInfo["GPU$($InstalledGPUs.IndexOf($GPUDevice))"] = [ordered]@{
 
-'Manufacturer' = [string]$($GPUDevice.AdapterCompatibility);
-'Name' = $CurrentGPUName;
+# | GPU Manufacturer
+'Manufacturer' = $GPUDevice.AdapterCompatibility;
 
-# | Because regisrty query returns Array with empty zero element filter it out
+# | Remove Manufacturer Name from GPU Model Name since we have already store Manufacturer in appropriate separated field above
+'Model' = [regex]::Replace($($CurrentGPU.'DriverDesc' | where {$_.Length -ne 0}), $($GPUDevice.AdapterCompatibility), "", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase);
+
+# | Filter out proper memory size from regisrty cause registry query returns memory szie as Array with empty zero element, while integer required
 'Memory' = "$(($CurrentGPU.'HardwareInformation.qwMemorySize' | where {$_.Length -ne 0}) / 1Mb) Mb";
 }
 }
@@ -184,33 +201,41 @@ $PCInfo["GPU$($InstalledGPUs.IndexOf($GPUDevice))"] = [ordered]@{
 # | Physical Adapters
 foreach ($PhysicalAdapter in $PhysicalAdaptersQuery){
 
-# | Add to PCInfo using each PhysicalAdapter Array index to enumerate
-$PCInfo["PhysicalAdapter$($PhysicalAdaptersQuery.IndexOf($PhysicalAdapter))"] = [ordered]@{
+# Query Win32_NetworkAdapter to get more informative AdapterType string and MACAddress
+$PhysicalAdapterInfo = Get-CimInstance -Query "Select PNPDeviceID, AdapterType, MACAddress, Manufacturer from Win32_NetworkAdapter" | where {$_.PNPDeviceID -like "$($PhysicalAdapter.PNPDeviceID)"}
 
-'Name' = [string]$PhysicalAdapter.Name; 
-'MACAddress' = [string]$PhysicalAdapter.MACAddress; 
-'AdapterType' = [string]$PhysicalAdapter.AdapterType;
+# | Add to PCInfo using each PhysicalAdapter Array index to enumerate
+$PCInfo["PhysicalNetAdapter$($PhysicalAdaptersQuery.IndexOf($PhysicalAdapter))"] = [ordered]@{
+
+# | Manufacturer from Win32_NetworkAdapter
+'Manufacturer' = $PhysicalAdapterInfo.Manufacturer;
+
+# | Name from MSFT_NetAdapter cleaned of redundant manufacturer info
+'Name' = [regex]::Replace($PhysicalAdapter.interfaceDescription, $PhysicalAdapterInfo.Manufacturer, "", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase);
+
+# MAC from Win32_NetworkAdapter
+'MACAddress' = $PhysicalAdapterInfo.MACAddress; 
+
+# More Informative MediaType from Win32_NetworkAdapter
+'AdapterType' = $PhysicalAdapterInfo.AdapterType;
+
+# Speed as INT from MSFT_NetAdapter convert to Mbits
+'AdapterSpeed' = "$($PhysicalAdapter.Speed / 1000000) Mbit";
+
 }
 }
 
 # | IPEnabled Connections (Both Active and InActive)
 foreach ($Connection in $NetConnectionsQuery) {
 
-# | Connection Details
-$ConnectionDetails = $AllNetAdaptersQuery | where {$_.MACAddress -like $Connection.MACAddress}
-
-# Define Current NetConnection status (Active or InActive)
-IF ($ConnectionDetails.NetConnectionStatus -eq 2) {$ConnectionStatus = "(Active)"} ELSE {$ConnectionStatus = "(InActive)"}
-
-# | Add Current Connection to PCInfo
-# | Use Array index of connection for enumeration
+# | Add Current Connection to PCInfo using Array index for enumeration
 $PCInfo["NetConnection$($NetConnectionsQuery.IndexOf($Connection))$($ConnectionStatus)"] = [ordered]@{
 
-# | Connection Name
-'Name' = $ConnectionDetails.NetConnectionID;
+# | Connection Name from Win32_NetworkAdapter
+'Name' = $Connection.Description;
 
 # | Connection MAC Address
-'MACAddress' = $ConnectionDetails.MACAddress;
+'MACAddress' = $Connection.MACAddress;
 
 # | Use regexp to get only IPv4 Address
 'IPv4Address' = [string]$Connection.IPAddress.split().where({$_ -match "\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b"})
@@ -376,7 +401,7 @@ $LocalPath = "$FilePath\$PCName.$FileExtension"
 # | Set our Beautiful Custom CSS Style
 $CSSStyle = @"
 <head><style>
-.div-table {display: inline-block; width: 800px; height: auto; min-height: 780px; border-left: 1px solid black; border-right: 1px solid black; padding: 10px; float: left; margin-top: 10px; margin-left: 10px; margin-bottom: 10px; vertical-align: top;}
+.div-table {display: inline-block; width: 1200px; height: auto; min-height: 780px; border-left: 1px solid black; border-right: 1px solid black; padding: 10px; float: left; margin-top: 10px; margin-left: 10px; margin-bottom: 10px; vertical-align: top;}
 .div-table-row {display: table-row;}
 .div-table-cell {width: 180px; min-width: 180px; max-width: 180px; padding: 10px 20px 10px; border-top: 1px solid black; border-left: 1px solid black; float: left;}
 </head></style>
