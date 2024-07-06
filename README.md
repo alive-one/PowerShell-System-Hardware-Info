@@ -1,4 +1,5 @@
 # PowerShell-System-Hardware-Info
+---Common Info---
 PowerShell script to collect major hardware and some software information for local system. 
 Designed for Windows OS family with Powershell version 5.1 or higher.
 
@@ -9,3 +10,8 @@ So, if you started script from D:\ drive, your system name is I123456-Home and c
 Incase your Windows OS Powershell execution policy is "Restricted" (Which is highly possible because this policy enabled by Default) 
 you need to change execution policy either manually or start hwinfo.ps1 via hwinfo-start.bat (Run as Administrator)
 It will set *.ps1 files execution policy to "RemoteSigned" and return it to "Default" later.
+
+---MySQL Part---
+01. Install MySQL Server and configure it to accept remote connections from your network.
+02. Create MySQL Database with help of create_mysql_database.sql with sufficient privileges
+03. Download Oracles MySQL\Connector from their official site and provide it in Powershell Script Root folder ---To BE CONTINUED
