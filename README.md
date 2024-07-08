@@ -2,7 +2,11 @@
 
 PowerShell script to collect major hardware and some software information for local system. Designed for Windows OS family with Powershell version 5.1 or higher.
 
-When executed, script collects system hardware data and network settings to save as file of your choice in script's root directory using local system name as filename. Output data formats are: JSON, CSV, XML, HTML(GUI) local files or SQL insert to your database. Multiple choiсe is possible. Script to create MySQL Database also provied in this repository. So, if you started script from D:\ drive, your system name is I123456-Home and you choose *.csv and *.json as output file format you end up with D:\I123456-Home.csv and D:\I123456-Home.json files
+When executed, script collects system hardware data and network settings to save as file of your choice in script's root directory using local system name as filename. 
+
+Output data formats are: JSON, CSV, XML, HTML(GUI) local files or SQL insert to your database. Multiple choiсe is possible. So, if you started script from D:\ drive, your system name is I123456-Home and you choose *.csv and *.json as output file format you end up with D:\I123456-Home.csv and D:\I123456-Home.json files
+
+Script to create simple MySQL database also avialable in this repository: **create_mysql_databse.sql**
 
 Incase your Windows OS Powershell execution policy is "Restricted" (Which is highly possible because this policy enabled by Default) you need to change execution policy either manually or start hwinfo.ps1 via hwinfo-start.bat (Run as Administrator) It will set *.ps1 files execution policy to "RemoteSigned" and return it to "Default" later.
 
