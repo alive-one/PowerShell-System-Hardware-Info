@@ -88,9 +88,9 @@ Then it is alright.
 
 **sqlwriter** is username which remote clients will use to write data to your MySQL server's database tables. **192.168.0.%** is your network (JUST AN EXAMPLE, CHANGE IT TO YOUR CURRENT NETWORK RANGE). **your-secure-password** is, well, your secure password.
 
-Now your MySQL server will accept connections from remote hosts of your network and allow them to INSERT and REFRENCES data in your databse. Yay! 
+Now your MySQL server will accept connections from remote hosts of your network and allow them to INSERT and REFRENCES data in your databse. Yay! Of course, if you do not forget to edit your firewall rules, you know.
 
-P.S. Remember, if (when) you would need to read or manage your data you'd better create user, say 'sqlreader', who can SELECT, UPDATE and do some other SQL stuff of your choice.
+P.S. Remember, if (when) you would need to read or manage your data you'd better create user, say 'sqlreader', who can SELECT, UPDATE, ALTER, etc., and do some other SQL stuff of your choice.
 
 05. It is not over yet!
 
