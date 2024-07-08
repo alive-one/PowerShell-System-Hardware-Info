@@ -18,7 +18,9 @@ Incase you do not have MySQL Server, here is a brief tutorial (For ubuntu-server
 
 (It is supposed that you already have Putty and connect to your ubintu-server via Putty terminal)
 
->sudo apt update sudo apt install mysql-server
+>sudo apt update
+
+>sudo apt install mysql-server
 
 Wait a bit while Ubuntu finish up it console magic then make sure that mysql-server is up and running:
 
