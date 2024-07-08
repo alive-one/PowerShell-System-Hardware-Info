@@ -44,7 +44,7 @@ MySQL Server configured. Good job, soldier!
 
 03. Create MySQL Database and its tables.
 
-Download mysql_database.sql script from this repository and copy its content. Open mysql-server console:
+Download **mysql_database.sql** script from this repository and copy its content. Open mysql-server console:
 
 >sudo mysql
 
