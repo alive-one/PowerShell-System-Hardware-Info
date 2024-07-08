@@ -13,6 +13,7 @@ you need to change execution policy either manually or start hwinfo.ps1 via hwin
 It will set *.ps1 files execution policy to "RemoteSigned" and return it to "Default" later.
 
 ---MySQL Info---
+
 Incase you do not have MySQL Server, here is a brief tutorial (For ubuntu-server 22.04 LTS)
 
 01. Install MySQL Server:
