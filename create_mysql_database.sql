@@ -38,8 +38,8 @@ CREATE TABLE cpus (
 (ramtype)1:M(computers)
 */
 create table ramtypes (
-	ramtype_id int auto_increment primary key,
-	ram_type varchar(24) default 'unknown'
+    ramtype_id int auto_increment primary key,
+    ram_type varchar(24) default 'unknown'
     );
 
 /* RAM Modules Table 
