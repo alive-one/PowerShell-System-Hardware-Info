@@ -78,7 +78,7 @@ If you see all necessary tables:
 ```
 Then it is alright.
 
-04. Create user for remote clients with suddicient privileges to write data to your database. (You must still have mysql-console open in your terminal). Execute commands:
+04. Create user for remote clients with privileges to write data to your database. (You must still have mysql-console open in your terminal). Execute commands:
 
 >CREATE USER 'sqlwriter'@'192.168.0.%' IDENTIFIED BY 'your-secure-password'; 
 
