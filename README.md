@@ -74,8 +74,7 @@ If you see all necessary tables:
 ```
 Then it is alright.
 
-04. Create user for remote clients (You must still have mysql-console open in your terminal) 
-Execute commands:
+04. Create user for remote clients. (You must still have mysql-console open in your terminal). Execute commands:
 
 >CREATE USER 'sqlwriter'@'192.168.0.%' IDENTIFIED BY 'your-secure-password'; 
 
@@ -83,7 +82,7 @@ Execute commands:
 
 >FLUSH PRIVILEGES;
 
-'sqlwriter' is username which remote clients will use to write data to your MySQL server's database tables. '192.168.0.%' is your network (JUST AN EXAMPLE, CHANGE IT TO YOUR CURRENT NETWORK RANGE). 'your-secure-password' is, well, your secure password.
+**sqlwriter** is username which remote clients will use to write data to your MySQL server's database tables. **192.168.0.%** is your network (JUST AN EXAMPLE, CHANGE IT TO YOUR CURRENT NETWORK RANGE). **your-secure-password** is, well, your secure password.
 
 Now your MySQL server will accept connections from remote hosts of your network and allow them to INSERT and REFRENCES data in your databse. Yay! 
 
@@ -91,7 +90,7 @@ P.S. Remember, if (when) you would need to read or manage your data you'd better
 
 05. It is not over yet!
 
-Download Oracles MySQL\Connector from their official site and make sure that current script can access it from script's root folder.
-Just install connector, go to connector's folder and copy-paste MySQL.Data.dll to directory form where hwinfo.ps1 can download and use it.
+Download Oracle's MySQL\Connector from their official site and make sure that current script can access it from script's root folder.
+Just install connector, go to connector's folder and copy-paste **MySQL.Data.dll** to directory form where hwinfo.ps1 can access and use it.
 
-You're good to go!
+06. You're good to go!
