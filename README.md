@@ -34,9 +34,7 @@ Install and run Midnight Commander
 
 >sudo mc
 
-You must see amazing blue panels of Midnight Commander. Navigate to MySQL configuration file **/etc/mysql/mysql.conf.d/mysql.cnf** and press F4 to open file for editing. Find "bind-address" string and assign THE SAME IP-ADDRESS WHICH HAS YOUR UBUNTU-SERVER. For example, if your ubuntu-server IP address is 192.168.0.70 your bind-address string must looks like: bind-address = 192.168.0.70 
-
-Press F2 to save changes, then press F10 to exit file. Type "exit" to exit amazing blue panels of Midnight Commander. Restart mysql-server for your efforts to take effect:
+You must see amazing blue panels of Midnight Commander. Navigate to MySQL configuration file **/etc/mysql/mysql.conf.d/mysql.cnf** and press F4 to open file for editing. Find "bind-address" string and assign THE SAME IP-ADDRESS WHICH HAS YOUR UBUNTU-SERVER. For example, if your ubuntu-server IP address is 192.168.0.70 your bind-address string must looks like: bind-address = 192.168.0.70 Press F2 to save changes, then press F10 to exit file. Type "exit" to exit amazing blue panels of Midnight Commander. Restart mysql-server for your efforts to take effect:
 
 >sudo service mysql restart
 
@@ -48,7 +46,7 @@ Download mysql_database.sql script from this repository and copy its content. Op
 
 >sudo mysql
 
-Paste contetnt of mysql_database.sql script in console by clicking RMB (Right Mouse Button) in Putty terminal. Wait while database and tables will be created. Press ENTER. Well done!
+Paste contetnt of create_mysql_database.sql script in console by clicking RMB (Right Mouse Button) in Putty terminal. Wait while database and tables will be created. Press ENTER. Well done!
 
 04. Create user for remote clients (You must still have mysql-console open in your terminal) 
 Execute commands:
