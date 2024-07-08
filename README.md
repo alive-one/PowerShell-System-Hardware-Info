@@ -50,22 +50,43 @@ Download **mysql_database.sql** script from this repository and copy its content
 
 Paste contetnt of create_mysql_database.sql script in console by clicking RMB (Right Mouse Button) in Putty terminal. Wait while database and tables will be created. Press ENTER. Well done!
 
+Make sure that all tables has been created:
+
+>use pcinfo;
+
+>show tables;
+
+If you see all necessary tables:
+```
++------------------+
+| Tables_in_pcinfo |
++------------------+
+| baseboards       |
+| computers        |
+| cpus             |
+| gpus             |
+| netadapters      |
+| netconnections   |
+| rammodules       |
+| ramtypes         |
+| storages         |
++------------------+
+```
+Then it is alright.
+
 04. Create user for remote clients (You must still have mysql-console open in your terminal) 
 Execute commands:
 
-CREATE USER 'sqlwriter'@'192.168.0.%' IDENTIFIED BY 'your-secure-password'; 
+>CREATE USER 'sqlwriter'@'192.168.0.%' IDENTIFIED BY 'your-secure-password'; 
 
-GRANT INSERT, REFERENCES ON pcinfo.* TO 'sqlwriter'@'192.168.0.%'; 
+>GRANT INSERT, REFERENCES ON pcinfo.* TO 'sqlwriter'@'192.168.0.%'; 
 
-FLUSH PRIVILEGES;
+>FLUSH PRIVILEGES;
 
-'sqlwriter' is username which remote clients will use to write data to your MySQL server's database tables. 
-
-'192.168.0.%' is your network (JUST AN EXAMPLE, CHANGE IT TO YOUR CURRENT NETWORK RANGE). 
-
-'your-secure-password' is, well, your secure password.
+'sqlwriter' is username which remote clients will use to write data to your MySQL server's database tables. '192.168.0.%' is your network (JUST AN EXAMPLE, CHANGE IT TO YOUR CURRENT NETWORK RANGE). 'your-secure-password' is, well, your secure password.
 
 Now your MySQL server will accept connections from remote hosts of your network and allow them to INSERT and REFRENCES data in your databse. Yay! 
+
 P.S. Remember, if (when) you would need to read or manage your data you'd better create user, say 'sqlreader', who can SELECT, UPDATE and do some other SQL stuff of your choice.
 
 05. It is not over yet!
