@@ -1,4 +1,4 @@
-###Common Info
+### Common Info ###
 
 PowerShell script to collect major hardware and some software information for local system. Designed for Windows OS family with Powershell version 5.1 or higher.
 
@@ -6,7 +6,7 @@ When executed, script collects system hardware data and network settings to save
 
 Incase your Windows OS Powershell execution policy is "Restricted" (Which is highly possible because this policy enabled by Default) you need to change execution policy either manually or start hwinfo.ps1 via hwinfo-start.bat (Run as Administrator) It will set *.ps1 files execution policy to "RemoteSigned" and return it to "Default" later.
 
-###MySQL Info
+### MySQL Info ###
 
 Incase you do not have MySQL Server, here is a brief tutorial (For ubuntu-server 22.04 LTS)
 
