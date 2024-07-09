@@ -94,6 +94,6 @@ P.S. Remember, if (when) you would need to read or manage your data you'd better
 
 05. Download Oracle's MySQL Database driver
   
-Surf to Oracle official site https://www.mysql.com/products/connector/ where listed different types of connectors. Click **ODBC Driver for MySQL (Connector/ODBC)** and choose **Windows (x86, 64-bit), ZIP Archive**. Unzip it and and make sure that folder with connector stored in the same directory as **hwinfo.ps1**
+Surf to Oracle official site https://www.mysql.com/products/connector/ where listed different types of connectors. Click **ODBC Driver for MySQL (Connector/ODBC)** and choose **Windows (x86, 64-bit), ZIP Archive**. When downloaded unzip it and and make sure that folder with connector stored in the same directory as **hwinfo.ps1**
 
-8. You're good to go!
+06. You're good to go!
