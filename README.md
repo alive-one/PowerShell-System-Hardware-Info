@@ -92,9 +92,7 @@ Now your MySQL server will accept connections from remote hosts of your network 
 
 P.S. Remember, if (when) you would need to read or manage your data you'd better create user, say 'sqlreader', who can SELECT, UPDATE, ALTER, etc., and do some other SQL stuff of your choice.
 
-05. It is not over yet!
-
-Download **ODBC** Oracle's MySQL\Connector from their official site https://www.mysql.com/products/connector/ 
-unzip it and and make sure that folder with connector stored in the same folder with hwinfo.ps1
+05. Download **ODBC** Oracle's MySQL\Connector from their official site https://www.mysql.com/products/connector/ 
+unzip it and and make sure that folder with connector stored in the same directory as hwinfo.ps1
 
 06. You're good to go!
