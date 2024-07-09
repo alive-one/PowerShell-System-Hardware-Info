@@ -94,7 +94,7 @@ P.S. Remember, if (when) you would need to read or manage your data you'd better
 
 05. It is not over yet!
 
-Download Oracle's MySQL\Connector from their official site and make sure that current script can access it from script's root folder.
-Just install connector, go to connector's folder and copy-paste **MySQL.Data.dll** to directory form where hwinfo.ps1 can access and use it.
+Download **ODBC** Oracle's MySQL\Connector from their official site https://www.mysql.com/products/connector/ 
+unzip it and and make sure that folder with connector stored in the same folder with hwinfo.ps1
 
 06. You're good to go!
