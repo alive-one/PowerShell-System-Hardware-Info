@@ -94,8 +94,8 @@ Now your MySQL server will accept connections from remote hosts of your network 
 
 P.S. Remember, if (when) you would need to read or manage your data you'd better create user, say 'sqlreader', who can SELECT, UPDATE, ALTER, etc., and do some other SQL stuff of your choice.
 
-05. Download Oracle's MySQL Database driver
+05. Copy Oracle's MySQL Database Connector
   
-Surf to Oracle official site https://www.mysql.com/products/connector/ where listed different types of connectors. Click **ODBC Driver for MySQL (Connector/ODBC)** and choose **Windows (x86, 64-bit), ZIP Archive**. When downloaded unzip it and and make sure that folder with connector stored in the same directory as **hwinfo.ps1**
+Download **MySQL.Data.dll** and **System.Threading.Tasks.Extensions.dll** from this repository and make sure to copy these files in same directory with **hwinfo.ps1** for script will search these assemblies in its root folder. Alternatively you can download these files from Oracle official site https://www.mysql.com/products/connector/ or NuGet repository, but make sure to download exact same version of **System.Threading.Tasks.Extensions.dll** which requires **MySQL.Data.dll** Otherwise they can not work together.
 
 06. You're good to go!
