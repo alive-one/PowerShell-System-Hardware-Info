@@ -1,10 +1,11 @@
 /*NOTE: It is strongly recommend to create DB as *NIX server user
 and DO NOT give privileges to create or alter DB to Powershell Script from clients PCs
 for they must only have PRIVILEGES to INSERT and REFERENCES data to DB Tables. 
-Cause, actually, it's their only purpose. For Security Reasons, you know.
 */
 
--- Create Your Database (You can choose any name you like, but do not forget to edit MySQL configuration part of hwinfo.ps1 then)
+/* Create Your Database 
+You can choose any name you like, but do not forget to edit MySQL configuration part of hwinfo.ps1 then
+*/
 CREATE DATABASE IF NOT EXISTS pcinfo;
 
 -- Use your database 
@@ -63,8 +64,7 @@ CREATE TABLE rammodules (
 */
 CREATE TABLE computers (
     computer_id int auto_increment primary key,
-    computer_name_raw varchar(196) default 'unknown',
-    computer_name_int bigint unsigned,
+    computer_name varchar(196) default 'unknown',
     server_date datetime default NOW(),
     total_ram_gb tinyint unsigned,
     baseboard_id int not null,
