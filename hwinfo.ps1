@@ -1,12 +1,13 @@
-# | Configuration
+# | ---CONFIGURATION---
+
 # | Path to write data (Default is script root directory)
 $FilePath = "$PSScriptRoot" 
 
-# | Set Data Format Output. For example $JSON = 1 to export Data in *.json format. Multiple Choice is Possible
-$JSON = 1
+# | $JSON = 1 to export Data in *.json format. (Multiple Choice is Possible)
+$JSON = 0
 
-# | CSV Export Settings
-$CSV = 1
+# | $CSV = 1 to export Data in *.csv format.
+$CSV = 0
 
 # | Set standard CSV delimiter which is comma (,) by default
 $StringCSVDelimiter = ','
@@ -17,11 +18,35 @@ $DictionaryCSVDelimiter = '","'
 #$StringCSVDelimiter = (Get-Culture).TextInfo.ListSeparator
 #$DictionaryCSVDelimiter = "`"$($StringCSVDelimiter)`""
 
-# | XML Export Settings
-$XML = 1
+# | $XML = 1 to export Data in *.xml format.
+$XML = 0
 
-# | HTML(GUI) Export Settings
+# | $HTML = 1 to export Data in *.html(GUI) format.
 $HTML = 1
+
+# | $SQL = 1 to export Data to MySQL Server.
+# | Supposed that you already have MySQL Server up, running and properly setup
+# | *.sql script to create database and setup user and user privileges you can download from github <github-link>
+# | https://github.com/alive-one/PowerShell-System-Hardware-Info/blob/main/create_mysql_database.sql
+$MySQL = 0
+
+# | MySQL Server Address
+$ServerIP = "192.168.0.7"
+
+# | MySQL Server Port (Default is 3306)
+$ServerPort = "3306"
+
+# | Your Database Name here
+$DatabaseName = "pcinfo"
+
+# | MySQLServer username
+$Username = "your-username-here"
+
+# | SQL Server Password as Secure String
+$Password = "your-secure-password-here" 
+
+
+# --- DATA GATHERING ---
 
 # | As hwinfo.ps1 is a part of more complex system, current script must already have $PCName defined from previuos module "Autoren"
 # | If not then this script is launched as standalone module and need to define $PCName as local System Name
@@ -42,7 +67,6 @@ $PCInfo = [ordered]@{
 'SystemName' = $PCName;
 }
 
-# | Use Queres where it is possbile because queries are fastest method to get CIM-Instance Data
 # | Baseboard Manufacturer and Model
 $BaseBoardQuery = Get-CimInstance -Query "Select Manufacturer, Product from win32_Baseboard"
 
@@ -56,7 +80,15 @@ $RAMQuery = Get-CimInstance -Query "Select DeviceLocator, BankLabel, Capacity, S
 [string]$RAMType = $($RAMTypes.[int]$RAMQuery.MemoryType[0], $RAMTypes.[int]$RAMQuery.SMBIOSMemoryType[0]).where({$_ -notlike 'Undefined'},'First')
 
 # | All RAM Slots Available (No Matter Populaterd or Not)
-$RAMSlotsCount = $(Get-CimInstance -Query "Select MemoryDevices from Win32_PhysicalMemoryArray").MemoryDevices
+$RAMSlotsCount = (Get-CimInstance -Query "Select MemoryDevices from Win32_PhysicalMemoryArray").MemoryDevices
+
+# |Some Server OS has more advanced memory configuration and store Memory Devices Count as elements of Array
+if ($RAMSlotsCount -is [System.Array]) {
+
+# | Sum All elements of Array and redefine Final Value of RAMSlotsCount Variable
+[int]$RAMSlotsCount = ($RAMSlotsCount | Measure-Object -Sum).Sum
+
+}
 
 # | All RAM Available
 [int]$TotalRAMCapacity = 0
@@ -92,6 +124,7 @@ $PCInfo["BaseBoard"] = [ordered]@{
 'Model' = $BaseBoardQuery.Product; 
 
 'RAMSLots' = "$($RAMSlotsCount) RAM Slots";
+
 }
 
 # | CPUs (There can be a few, you know)
@@ -113,6 +146,7 @@ $CleanCPUName = [string]$CPU.Name -replace ".*?($CleanCPUManufacturer).*? ", ""
 
 # | Leave CPU Name as is
 [string]$CleanCPUName = $CPU.Name
+
 }
 
 # | Use each CPU.DeviceID as name for Ordered Dictionary which contains CPU Name and Cores/Threads Count. And add this dictionary to PCInfo
@@ -124,8 +158,12 @@ $PCInfo[$CPU.DeviceID] = [ordered]@{
 
 'Name' = $CleanCPUName;
 
+'Speed' = "$($CPU.MaxClockSpeed) MHz";
+
 'Cores/Threads' = "$($CPU.NumberOfCores) Cores / $($CPU.NumberOfLogicalProcessors) Threads";
+
 }
+
 }
 
 # | Common RAM Info 
@@ -136,8 +174,8 @@ $PCInfo['RAM'] = [ordered]@{
 'TotalRAM' = "$($TotalRAMCapacity) Gb";
 
 'Speed' = "$($RAMQuery[0].Speed) Mhz"
-}
 
+}
 
 # | Individual RAM Modules Info
 foreach ($RAMModule in $RAMQuery){
@@ -148,9 +186,10 @@ $PCInfo[("RAM$($RAMModule.BankLabel)").replace(" ", "")] = [ordered]@{
 'ModuleSlot' = "$($RAMModule.DeviceLocator)";
 
 'ModuleSize' = "$($RAMModule.Capacity / 1MB) Mb";
-}
-} 
 
+}
+
+} 
 
 # | Storage
 foreach ($Device in $StorageQuery) {
@@ -174,10 +213,10 @@ $PCInfo["Disk$($Device.DeviceID)"] = [ordered]@{
 'Size' = [string]([Math]::Round($Device.Size/1000000000)) + " Gb";
 
 }
+
 }
 
-
-# GPUs
+# | GPUs
 foreach ($GPUDevice in $InstalledGPUs) {
 
 # | Compare currently installed GPU Device IDs with corresponding values from Registry to get necessary registry branch with actual info on GPU Memory size
@@ -190,13 +229,14 @@ $PCInfo["GPU$($InstalledGPUs.IndexOf($GPUDevice))"] = [ordered]@{
 'Manufacturer' = $GPUDevice.AdapterCompatibility;
 
 # | Remove Manufacturer Name from GPU Model Name since we have already store Manufacturer in appropriate separated field above
-'Model' = [regex]::Replace($($CurrentGPU.'DriverDesc' | where {$_.Length -ne 0}), $($GPUDevice.AdapterCompatibility), "", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase);
+# | Also Trim() GPU Model string varuable for there is whitespace in the very begining
+'Model' = ([regex]::Replace($($CurrentGPU.'DriverDesc' | where {$_.Length -ne 0}), $($GPUDevice.AdapterCompatibility), "", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)).Trim();
 
 # | Filter out proper memory size from regisrty cause registry query returns memory szie as Array with empty zero element, while integer required
 'Memory' = "$(($CurrentGPU.'HardwareInformation.qwMemorySize' | where {$_.Length -ne 0}) / 1Mb) Mb";
 }
-}
 
+}
 
 # | Physical Adapters
 foreach ($PhysicalAdapter in $PhysicalAdaptersQuery){
@@ -210,8 +250,8 @@ $PCInfo["PhysicalNetAdapter$($PhysicalAdaptersQuery.IndexOf($PhysicalAdapter))"]
 # | Manufacturer from Win32_NetworkAdapter
 'Manufacturer' = $PhysicalAdapterInfo.Manufacturer;
 
-# | Name from MSFT_NetAdapter cleaned of redundant manufacturer info
-'Name' = [regex]::Replace($PhysicalAdapter.interfaceDescription, $PhysicalAdapterInfo.Manufacturer, "", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase);
+# | Name from MSFT_NetAdapter cleaned of redundant manufacturer info and whitespaces
+'Model' = ([regex]::Replace($PhysicalAdapter.interfaceDescription, $PhysicalAdapterInfo.Manufacturer, "", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)).Trim();
 
 # MAC from Win32_NetworkAdapter
 'MACAddress' = $PhysicalAdapterInfo.MACAddress; 
@@ -223,6 +263,7 @@ $PCInfo["PhysicalNetAdapter$($PhysicalAdaptersQuery.IndexOf($PhysicalAdapter))"]
 'AdapterSpeed' = "$($PhysicalAdapter.Speed / 1000000) Mbit";
 
 }
+
 }
 
 # | IPEnabled Connections (Both Active and InActive)
@@ -231,8 +272,9 @@ foreach ($Connection in $NetConnectionsQuery) {
 # | Add Current Connection to PCInfo using Array index for enumeration
 $PCInfo["NetConnection$($NetConnectionsQuery.IndexOf($Connection))$($ConnectionStatus)"] = [ordered]@{
 
-# | Connection Name from Win32_NetworkAdapter
-'Name' = $Connection.Description;
+# | Connection Name from Win32_NetworkAdapter using Win32_NetworkAdapter.DeviceID and Win32_NetworkAdapter.Index
+# | as corresponding valies to filter out current connection Name
+'Name' = (Get-CimInstance -Query "Select NetConnectionID from Win32_NetworkAdapter WHERE DeviceID = $($Connection.Index)").NetConnectionID;
 
 # | Connection MAC Address
 'MACAddress' = $Connection.MACAddress;
@@ -246,7 +288,11 @@ $PCInfo["NetConnection$($NetConnectionsQuery.IndexOf($Connection))$($ConnectionS
 # | Convert to string cause initially powershell returns Gateway as Array
 'Gateway' = [string]$Connection.DefaultIpGateway;
 }
+
 }
+
+
+# | --- DATA EXPORT ---
 
 # | Export to JSON
 IF ($JSON -ne 0) {
@@ -271,8 +317,7 @@ $JSONFormat = $PCInfo | ConvertTo-JSON
 Add-Content -Path $LocalPath -Value $JSONFormat
 }
 
-
-# | # | Export to CSV
+# | Export to CSV
 # | I am aware about ConvertTo-CSV and Export-CSV CMDlets yet in this case there is a need for more manageble CSV structure
 # | Also by default Windows 10 PSVersion is 5, and Export-CSV -UseQuotes only available in PSVersion 7
 # | since I need legacy OS support and CSV with quotes obligatory usage of Export-CSV, etc. somewhat pointless.
@@ -308,7 +353,9 @@ Add-Content -Path $LocalPath -Value "`"$Key`"$StringCSVDelimiter`"$($PCInfo.$Key
 Add-Content -Path $LocalPath -Value `"$($Key, ($($PCInfo.$Key.Values) -join $DictionaryCSVDelimiter) -join $DictionaryCSVDelimiter)`"
 
 }
+
 }
+
 }
 
 # | Export to XML
@@ -462,4 +509,133 @@ Add-Content -Path $LocalPath -Value $CloseRow
 }
 # | Close Main Div Table
 Add-Content -Path $LocalPath -Value $CloseRow
+}
+
+
+# | Export to MySQL Server
+
+IF ($MySQL -ne 0) {
+
+# | Load MySQL\Connector (MySql.Data.dll) Assembly and dependencies
+[Reflection.Assembly]::LoadFrom("$PSScriptRoot\MySql.Data.dll")
+[Reflection.Assembly]::LoadFrom("$PSScriptRoot\System.Threading.Tasks.Extensions.dll")
+
+# | Generate connection string and open Database connection
+$ConnectionString = "server=$ServerIP;Port=$ServerPort;database=$DatabaseName;user id=$Username;password=$Password"
+$connection = New-Object MySql.Data.MySqlClient.MySqlConnection($connectionString)
+$connection.Open()
+
+# | Select Database
+$DataBaseSelect = "use $($MySQLDatabase);"
+$command = $connection.CreateCommand()
+$command.CommandText = $DataBaseSelect
+$command.ExecuteNonQuery() | Out-Null
+
+# | Insert into BASEBOARDS table
+$command = $connection.CreateCommand()
+$command.CommandText = "INSERT INTO baseboards (baseboard_manufacturer, baseboard_model, baseboard_ramslots) VALUES ('$($BaseBoardQuery.Manufacturer)', '$($BaseBoardQuery.Product)', $($RAMSlotsCount));"
+$command.ExecuteNonQuery() | Out-Null
+
+# | Get the last inserted ID of baseboard. Note that there is no neeed to encapsulate connection in trasaction since LAST_INSERTED_ID() is Connection Specific
+# | i.e. $BaseBoardID returns last id in range of current connection, not all database. When only operation is crating new record in DB it is fine.
+$BaseBoardID = $command.LastInsertedId
+
+# | Insert into CPUS table
+foreach ($CPUItem in $PCInfo.Keys | where {$_ -match '^CPU\d+$'}) {
+
+# | Strip current CPU 'Cores/Threads' from any alphabetical simbols and convert to Array containing number of Cores: CoresAndThreads[0] 
+# | and number of Threads: CoresAndThreads[1] as zero and first element accordingly
+$CoresAndThreads = $(($PCInfo.$CPUItem.'Cores/Threads' -replace "[a-z]") -split "/")
+
+# | Write CPU(s) Data to MySQL Server
+$command = $connection.CreateCommand()
+$command.CommandText = @"
+INSERT INTO cpus (cpu_socket, cpu_manufacturer, cpu_model, cpu_clock_mhz, cpu_cores, cpu_threads, baseboard_id) 
+VALUES ($($PCInfo.$CPUItem.Socket -replace "[a-z]"), '$($PCInfo.$CPUItem.Manufacturer)', '$($PCInfo.$CPUItem.Name)', $($PCInfo.$CPUItem.Speed -replace "[a-z]"), $($CoresAndThreads[0]), $($CoresAndThreads[1]), $($BaseBoardID));
+"@
+$command.ExecuteNonQuery() | Out-Null
+}
+
+# | Insert into RAMTYPES table
+$command = $connection.CreateCommand()
+$command.CommandText = "INSERT INTO ramtypes (ram_type) VALUES ('$($RAMType)');"
+$command.ExecuteNonQuery() | Out-Null
+
+# | Get RAMTypeID
+$RAMTypeID = $command.LastInsertedId
+
+# | Insert into RAMMODULES
+# | Note that RamModule Speed taken from RAMQuery directly
+foreach ($RAMModuleItem in $PCInfo.Keys | where {$_ -match '^RAMBANK\d+$'}) {
+
+$command = $connection.CreateCommand()
+$command.CommandText = @"
+INSERT INTO rammodules (bank_label, module_size_mb, module_speed_mhz, baseboard_id, ramtype_id) 
+VALUES ('$($RamModuleItem)', $($PCInfo.$RAMModuleItem.ModuleSize -replace "[a-z]"), $($RAMQuery[0].Speed), $($BaseBoardID), $($RAMTypeID));
+"@
+$command.ExecuteNonQuery() | Out-Null
+}
+
+# | Insert into COMPUTERS
+$command = $connection.CreateCommand()
+$command.CommandText = @"
+INSERT INTO computers (computer_name, server_date, total_ram_gb, baseboard_id, ramtype_id) 
+VALUES ('$($PCInfo.SystemName)', NOW(), $($TotalRAMCapacity), $($BaseBoardID), $($RAMTypeID));
+"@
+$command.ExecuteNonQuery() | Out-Null
+
+# | Get ComputerID from computers table to use as foreign_key for each storage device
+$ComputerID = $command.LastInsertedId
+
+# | Insert into STORAGES
+foreach ($StorageItem in $PCInfo.Keys | where {$_ -match '^DISK\d+$'}) {
+
+# | Separate (Bus)Type to Bus and Type
+$BusAndType = $($PCInfo.$StorageItem.'(Bus)Type' -split "\)")
+
+$command = $connection.CreateCommand()
+$command.CommandText = @"
+INSERT INTO storages (storage_manufacturer, storage_model, storage_bus, storage_type, storage_size_gb, computer_id) 
+VALUES ('$($PCInfo.$StorageItem.Manufacturer)', '$($PCInfo.$StorageItem.Model)', '$($BusAndType[0] -replace "\(", ""))', '$($BusAndType[1])', $($PCInfo.$StorageItem.Size -replace "[a-z]"), $($ComputerID));
+"@
+$command.ExecuteNonQuery() | Out-Null
+}
+
+# | Insert into GPUS
+foreach ($GPUItem in $PCInfo.Keys | where {$_ -match '^GPU\d+$'}) {
+
+$command = $connection.CreateCommand()
+$command.CommandText = @"
+INSERT INTO gpus (gpu_manufacturer, gpu_model, gpu_memory_mb, computer_id) 
+VALUES ('$($PCInfo.$GPUItem.Manufacturer)', '$($PCInfo.$GPUItem.Model)', '$($PCInfo.$GPUItem.Memory -replace "[a-z]")', $($ComputerID));
+"@
+$command.ExecuteNonQuery() | Out-Null
+}
+
+# | Insert into NETADAPTERS
+foreach ($NetAdapterItem in $PCInfo.Keys | where {$_ -match '^PhysicalNetAdapter\d+$'}) {
+
+$command = $connection.CreateCommand()
+$command.CommandText = @"
+INSERT INTO netadapters (netadapter_manufacturer, netadapter_model, netadapter_mac, netadapter_type, netadapter_speed_mbit, computer_id) 
+VALUES ('$($PCInfo.$NetAdapterItem.Manufacturer)', '$($PCInfo.$NetAdapterItem.Model)', '$($PCInfo.$NetAdapterItem.MACAddress)', '$($PCInfo.$NetAdapterItem.AdapterType)', $($PCInfo.$NetAdapterItem.AdapterSpeed -replace "[a-z]"), $($ComputerID));
+"@
+$command.ExecuteNonQuery() | Out-Null
+}
+
+# | Insert into NETCONNECTIONS 
+# | USE INET_ATON() function to convert and store network info as BIGINT UNSIGNED for it is MySQL recommended way to store IP Addresses and such
+# | (To convert it back from BIGINT to IP-Addresses and other network stuff use MySQL INET_NTOA() function)
+foreach ($NetConnectionItem in $PCInfo.Keys | where {$_ -match '^NetConnection\d+$'}) {
+
+$command = $connection.CreateCommand()
+$command.CommandText = @"
+INSERT INTO netconnections (сonnection_name, connection_mac, connection_ip, connection_netmask, connection_gateway, computer_id) 
+VALUES ('$($PCInfo.$NetConnectionItem.Name)', '$($PCInfo.$NetAdapterItem.MACAddress)', INET_ATON('$($PCInfo.$NetConnectionItem.IPv4Address)'), INET_ATON('$($PCInfo.$NetConnectionItem.SubnetMask)'), INET_ATON('$($PCInfo.$NetConnectionItem.Gateway)'), $($ComputerID));
+"@
+$command.ExecuteNonQuery() | Out-Null
+}
+
+# | Close Connection to MySQL Server
+$connection.Close()
 }
