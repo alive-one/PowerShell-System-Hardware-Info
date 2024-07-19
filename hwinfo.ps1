@@ -7,7 +7,7 @@ $FilePath = "$PSScriptRoot"
 $JSON = 0
 
 # | $CSV = 1 to export Data in *.csv format.
-$CSV = 1
+$CSV = 0
 
 # | Set standard CSV delimiter which is comma (,) by default
 $StringCSVDelimiter = ','
@@ -22,13 +22,13 @@ $DictionaryCSVDelimiter = '","'
 $XML = 0
 
 # | $HTML = 1 to export Data in *.html(GUI) format.
-$HTML = 0
+$HTML = 1
 
 # | $SQL = 1 to export Data to MySQL Server.
 # | Supposed that you already have MySQL Server up, running and properly setup
 # | *.sql script to create database and setup user and user privileges you can download from github <github-link>
 # | https://github.com/alive-one/PowerShell-System-Hardware-Info/blob/main/create_mysql_database.sql
-$MySQL = 1
+$MySQL = 0
 
 # | MySQL Server Address
 $ServerIP = "192.168.0.70"
