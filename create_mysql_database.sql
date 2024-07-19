@@ -4,7 +4,7 @@ for they must only have PRIVILEGES to INSERT and REFERENCES data to DB Tables.
 */
 
 /* Create Your Database 
-You can choose any name you like, but do not forget to edit MySQL configuration part of hwinfo.ps1 then
+(You can choose any name you like, but do not forget to edit MySQL configuration part of hwinfo.ps1 then)
 */
 CREATE DATABASE IF NOT EXISTS pcinfo;
 
@@ -24,12 +24,12 @@ CREATE TABLE baseboards (
  */
 CREATE TABLE cpus (
     cpu_id int auto_increment primary key,
-    cpu_socket smallint unsigned,
+    cpu_socket smallint unsigned default 0,
     cpu_manufacturer varchar(32) default 'unknown',
     cpu_model varchar(128) default 'unknown',
-    cpu_clock_mhz smallint unsigned,
-    cpu_cores tinyint unsigned,
-    cpu_threads tinyint unsigned,
+    cpu_clock_mhz smallint unsigned default 0,
+    cpu_cores tinyint unsigned default 0,
+    cpu_threads tinyint unsigned default 0,
     baseboard_id int not null,
     FOREIGN KEY (baseboard_id) REFERENCES baseboards(baseboard_id)
     );
@@ -39,8 +39,8 @@ CREATE TABLE cpus (
 (ramtype)1:M(computers)
 */
 create table ramtypes (
-    ramtype_id int auto_increment primary key,
-    ram_type varchar(24) default 'unknown'
+	ramtype_id int auto_increment primary key,
+	ram_type varchar(24) default 'unknown'
     );
 
 /* RAM Modules Table 
@@ -50,8 +50,8 @@ create table ramtypes (
 CREATE TABLE rammodules (
     module_id int auto_increment primary key,
     bank_label varchar(64) default 'unknown',
-    module_size_mb smallint unsigned,
-    module_speed_mhz smallint unsigned,
+    module_size_mb smallint unsigned default 0,
+    module_speed_mhz smallint unsigned default 0,
     baseboard_id int not null,
     ramtype_id int not null,
     FOREIGN KEY (baseboard_id) references baseboards(baseboard_id),
@@ -66,7 +66,7 @@ CREATE TABLE computers (
     computer_id int auto_increment primary key,
     computer_name varchar(196) default 'unknown',
     server_date datetime default NOW(),
-    total_ram_gb tinyint unsigned,
+    total_ram_gb tinyint unsigned default 0,
     baseboard_id int not null,
     ramtype_id int not null,
     FOREIGN KEY (baseboard_id) REFERENCES baseboards(baseboard_id),
@@ -82,7 +82,7 @@ CREATE TABLE storages (
     storage_model varchar(128) default 'unknown',
     storage_bus varchar(16) default 'unknown',
     storage_type varchar(16) default 'unknown',
-    storage_size_gb int unsigned,
+    storage_size_gb int unsigned default 0,
     computer_id int not null,
     FOREIGN KEY (computer_id) REFERENCES computers(computer_id)
     );
