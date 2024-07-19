@@ -37,13 +37,13 @@ $ServerIP = "192.168.0.70"
 $ServerPort = "3306"
 
 # | Your Database Name here
-$DatabaseName = "pcinfo"
+$DatabaseName = "your-database-name"
 
 # | MySQLServer username
-$Username = "sqlwriter"
+$Username = "your-mysql-username"
 
 # | SQL Server Password as Secure String
-$Password = "sysop31" 
+$Password = "your-secure-password" 
 
 
 
