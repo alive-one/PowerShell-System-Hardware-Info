@@ -37,7 +37,7 @@ $ServerIP = "192.168.0.70"
 $ServerPort = "3306"
 
 # | Your Database Name here
-$DatabaseName = "your-database-name"
+$DatabaseName = "pcinfo"
 
 # | MySQLServer username
 $Username = "your-mysql-username"
@@ -85,30 +85,25 @@ else {$RAMSlotsCount = "$RAMSlotsCount RAM Slots"}
 # | --- BASEBOARD INFO ---
 
 # | WQL Query for Baseboard Info
-# | Store query results as an [Array] for rare case when there are two or more baseboards in ComputerSystem
-# | to use array counter as enumerator later on
-$BaseBoardQuery = @(Get-CimInstance -Query "Select Manufacturer, Product from win32_Baseboard")
+$BaseBoardQuery = Get-CimInstance -Query "Select Manufacturer, Product from win32_Baseboard"
 
-# | Check if we got something in WQL Query
+# | Check of we got something useful in our query
 if ([string]::IsNullOrEmpty($BaseBoardQuery)) {
 
 $BaseBoardManufacturer = "Noname"
 
 $BaseBoardModel = "Unknown"
 
+# | Check if necessary peoperties are defined
 } else {
 
-# | Check and clean Baseboard Info
-foreach ($BaseBoard in $BaseBoardQuery) 
-{
-$BaseBoardManufacturer = if ([string]::IsNullOrEmpty($($BaseBoard.Manufacturer))) {"Noname"} else {$($BaseBoard.Manufacturer)}
+if ([string]::IsNullOrEmpty($BaseBoardQuery.Manufacturer)) {$BaseBoardManufacturer = "Noname"} else {$BaseBoardManufacturer = $BaseBoardQuery.Manufacturer}
 
-$BaseBoardModel = if ([string]::IsNullOrEmpty($($BaseBoard.Product))) {"Unknown"} else {$($BaseBoard.Product)}
+if ([string]::IsNullOrEmpty($BaseBoardQuery.Product)) {$BaseBoardModel = "Unknown"} else {$BaseBoardModel = $BaseBoardQuery.Product}
+}
 
-# | If more than one entry in Baseboards Array
-# | Store each BaseBoard with its array index as enumerator
-if ($BaseBoardQuery.length -ge 2) {
-$PCInfo["Baseboard$($BaseBoardQuery.indexOf($BaseBoard))"] = [ordered]@{
+# | Add data to $PCInfo
+$PCInfo["Baseboard"] = [ordered]@{
 
 'Manufacturer' = $BaseBoardManufacturer;
 
@@ -118,23 +113,7 @@ $PCInfo["Baseboard$($BaseBoardQuery.indexOf($BaseBoard))"] = [ordered]@{
 
 }
 
-# | Otherwise we have only one baseboard
-} else { 
-$PCInfo["Baseboard"] = [ordered]@{
 
-'Manufacturer' = $BaseBoardManufacturer;
-
-'Model' = $BaseBoardModel;
-
-'RAmSlots' = $RAMSlotsCount;
-
-}
-
-}
-
-}
-
-}
 
 
 # | --- CPU INFO ---
@@ -867,6 +846,9 @@ $command.CommandText = "use $DatabaseName;"
 $command.ExecuteNonQuery() | Out-Null
 
 # | Insert into BASEBOARDS table
+
+#foreach ($BaseBoardItem in $PCInfo.Keys | where {$_ -match '^Baseboard\d+$'}) { - тут надо или менять структуру базы или придумать как несколько материнок связывать с прочей комплектухой, но скорее всего менять структуру базы
+
 $command = $connection.CreateCommand()
 
 # | Create Insert Command Text
