@@ -225,7 +225,7 @@ $RAMModuleCapacity = "Unknown"
 
 # | Detecting RAM Type
 # | RAM Type stored in MemoryType, SMBIOSMemoryTYpe or Both. So Use .where() method to Filter Out only first suitable value
-[string]$RAMType = $($RAMTypes.[int]$RAMQuery.MemoryType[0], $RAMTypes.[int]$RAMQuery.SMBIOSMemoryType[0]).where({$_ -notlike 'Undefined'},'First')
+[string]$RAMType = $($RAMTypes.[int]$RAMQuery.MemoryType[0], $RAMTypes.[int]$RAMQuery.SMBIOSMemoryType[0]).where({$_ -notlike 'Unknown'},'First')
 
 # | Check if RAMType defined correctly
 if ([string]::IsNullOrEmpty($RAMType)) {$RAMType = "Unknown"}
